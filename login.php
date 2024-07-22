@@ -13,27 +13,31 @@ if ($conexion->connect_error) {
     die("La conexión falló: " . $conexion->connect_error);
 }
 
-$registro_exitoso = false;
+$login_exitoso = false;
 $error_msg = "";
 
 // Verificar si los datos del formulario están presentes
-if (isset($_POST['email']) && isset($_POST['password'])) {
-    $email = $_POST['email'];
-    $password = $_POST['password'];
+if (isset($_POST['login-email']) && isset($_POST['login-password'])) {
+    $email = $_POST['login-email'];
+    $password = $_POST['login-password'];
 
     // Preparar la consulta SQL usando sentencias preparadas
-    $stmt = $conexion->prepare("INSERT INTO registro (email, password) VALUES (?, ?)");
+    $stmt = $conexion->prepare("SELECT * FROM registro WHERE email = ? AND password = ?");
     if ($stmt === false) {
         $error_msg = "Error en la preparación de la consulta: " . $conexion->error;
     } else {
         // Bind de los parámetros
         $stmt->bind_param("ss", $email, $password);
 
-        // Ejecutar la consulta y verificar errores
-        if ($stmt->execute()) {
-            $registro_exitoso = true;
+        // Ejecutar la consulta
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        // Verificar si se encontró una coincidencia
+        if ($result->num_rows > 0) {
+            $login_exitoso = true;
         } else {
-            $error_msg = "Error: " . $stmt->error;
+            $error_msg = "Error en email o password, intenta de nuevo.";
         }
         
         // Cerrar la conexión
@@ -79,11 +83,11 @@ $conexion->close();
         </div>
     </nav>
 
-    <!-- Mensaje de registro -->
+    <!-- Mensaje de login -->
     <div class="container mt-3">
-        <?php if ($registro_exitoso): ?>
+        <?php if ($login_exitoso): ?>
             <div class="alert alert-success" role="alert">
-                Nuevo registro creado exitosamente.
+                Login exitoso. Bienvenido.
             </div>
         <?php elseif (!empty($error_msg)): ?>
             <div class="alert alert-danger" role="alert">
@@ -93,24 +97,20 @@ $conexion->close();
     </div>
 
     <!-- Registro y Login -->
-    <div class="container mt-5">
-        <div class="row justify-content-center">
+            <div class="row justify-content-center mt-5">
             <div class="col-md-6">
-                <h2 class="text-center">Registrate</h2>
-                <form action="registro.php" method="post">
+                <h2 class="text-center">Login</h2>
+                <form action="login.php" method="post">
                     <div class="form-group">
-                        <label for="email">Correo Electrónico</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
+                        <label for="login-email">Correo Electrónico</label>
+                        <input type="email" class="form-control" id="login-email" name="login-email" required>
                     </div>
                     <div class="form-group">
-                        <label for="password">Contraseña</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                        <label for="login-password">Contraseña</label>
+                        <input type="password" class="form-control" id="login-password" name="login-password" required>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block mt-3">Registrarse</button>
+                    <button type="submit" class="btn btn-primary btn-block mt-3">Login</button>
                 </form>
-            </div>
-        </div>
-        
             </div>
         </div>
     </div>
