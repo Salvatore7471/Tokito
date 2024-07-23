@@ -17,27 +17,36 @@ $registro_exitoso = false;
 $error_msg = "";
 
 // Verificar si los datos del formulario están presentes
-if (isset($_POST['email']) && isset($_POST['password'])) {
-    $email = $_POST['email'];
-    $password = $_POST['password'];
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $email = trim($_POST['email']);
+    $password = trim($_POST['password']);
 
-    // Preparar la consulta SQL usando sentencias preparadas
-    $stmt = $conexion->prepare("INSERT INTO registro (email, password) VALUES (?, ?)");
-    if ($stmt === false) {
-        $error_msg = "Error en la preparación de la consulta: " . $conexion->error;
+    // Validaciones del lado del servidor
+    if (empty($email)) {
+        $error_msg = "El campo de correo electrónico es obligatorio.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error_msg = "El correo electrónico no es válido.";
+    } elseif (empty($password)) {
+        $error_msg = "El campo de contraseña es obligatorio.";
     } else {
-        // Bind de los parámetros
-        $stmt->bind_param("ss", $email, $password);
-
-        // Ejecutar la consulta y verificar errores
-        if ($stmt->execute()) {
-            $registro_exitoso = true;
+        // Preparar la consulta SQL usando sentencias preparadas
+        $stmt = $conexion->prepare("INSERT INTO registro (email, password) VALUES (?, ?)");
+        if ($stmt === false) {
+            $error_msg = "Error en la preparación de la consulta: " . $conexion->error;
         } else {
-            $error_msg = "Error: " . $stmt->error;
+            // Bind de los parámetros
+            $stmt->bind_param("ss", $email, $password);
+
+            // Ejecutar la consulta y verificar errores
+            if ($stmt->execute()) {
+                $registro_exitoso = true;
+            } else {
+                $error_msg = "Error: " . $stmt->error;
+            }
+
+            // Cerrar la conexión
+            $stmt->close();
         }
-        
-        // Cerrar la conexión
-        $stmt->close();
     }
 }
 
@@ -55,6 +64,30 @@ $conexion->close();
     <link href="css/bootstrap-4.4.1.css" rel="stylesheet">
     <!-- Google reCAPTCHA -->
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script>
+        function validateForm() {
+            var email = document.getElementById("email").value;
+            var password = document.getElementById("password").value;
+            var errorMsg = "";
+
+            if (email === "") {
+                errorMsg += "El campo de correo electrónico es obligatorio.\n";
+            } else if (!/\S+@\S+\.\S+/.test(email)) {
+                errorMsg += "El correo electrónico no es válido.\n";
+            }
+
+            if (password === "") {
+                errorMsg += "El campo de contraseña es obligatorio.\n";
+            }
+
+            if (errorMsg !== "") {
+                alert(errorMsg);
+                return false;
+            }
+
+            return true;
+        }
+    </script>
 </head>
 <body>
     <!-- Navbar -->
@@ -97,7 +130,7 @@ $conexion->close();
         <div class="row justify-content-center">
             <div class="col-md-6">
                 <h2 class="text-center">Registrate</h2>
-                <form action="registro.php" method="post">
+                <form action="registro.php" method="post" onsubmit="return validateForm()">
                     <div class="form-group">
                         <label for="email">Correo Electrónico</label>
                         <input type="email" class="form-control" id="email" name="email" required>
@@ -108,9 +141,6 @@ $conexion->close();
                     </div>
                     <button type="submit" class="btn btn-primary btn-block mt-3">Registrarse</button>
                 </form>
-            </div>
-        </div>
-        
             </div>
         </div>
     </div>
